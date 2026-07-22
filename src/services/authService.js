@@ -69,6 +69,15 @@ export async function requestPasswordReset(email) {
   return { email, sent: true };
 }
 
+/**
+ * Update the user's password after the reset-link flow lands them back.
+ */
+export async function updatePassword(newPassword) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(error.message);
+  return true;
+}
+
 // ----------------------------------------------------------------
 // Profile helpers
 // ----------------------------------------------------------------

@@ -65,7 +65,10 @@ export function Landing() {
   return (
     <div className="min-h-screen bg-transparent text-foreground">
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-8 py-6 max-w-6xl mx-auto">
-        <span className="font-semibold text-lg text-white">Habit Tracker</span>
+        <div className="flex items-center gap-3">
+          <img src="/favicon.svg" alt="Habit Tracker logo" className="h-9 w-9 rounded-md shadow-sm" />
+          <span className="font-semibold text-lg text-white">Habit Tracker</span>
+        </div>
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <Link to="/login"><Button variant="ghost" className="bg-white/10 text-white border-white/20 hover:bg-white/20">Log in</Button></Link>
