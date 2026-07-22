@@ -13,7 +13,10 @@ const links = [
 export function Sidebar() {
   return (
     <aside className="w-60 shrink-0 bg-card/80 backdrop-blur-md border-r border-border min-h-screen p-4 hidden md:flex md:flex-col gap-1">
-      <div className="px-2 py-4 font-semibold text-lg text-foreground">Habit Tracker</div>
+      <div className="flex items-center gap-3 px-2 py-4">
+        <img src="/favicon.svg" alt="Habit Tracker logo" className="h-8 w-8 rounded-md" />
+        <div className="font-semibold text-lg text-foreground">Habit Tracker</div>
+      </div>
       {links.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}
