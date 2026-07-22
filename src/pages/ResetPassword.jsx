@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import * as authService from "../services/authService";
 import { Input } from "../components/ui/Input";
@@ -11,6 +11,34 @@ export function ResetPassword() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [recovering, setRecovering] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function restoreRecoverySession() {
+      try {
+        const recovered = await authService.recoverPasswordSession();
+        if (isMounted) {
+          setRecovering(false);
+          if (!recovered) {
+            setError("This reset link is invalid or expired. Please request a new one.");
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setRecovering(false);
+          setError(err.message || "Unable to use this password reset link.");
+        }
+      }
+    }
+
+    restoreRecoverySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -43,7 +71,9 @@ export function ResetPassword() {
         <h1 className="text-xl font-semibold mb-1">Set a new password</h1>
         <p className="text-muted-foreground text-sm mb-6">Choose a new password for your account.</p>
 
-        {success ? (
+        {recovering ? (
+          <p className="text-sm text-foreground">Validating your reset link…</p>
+        ) : success ? (
           <div className="space-y-3">
             <p className="text-sm text-foreground">
               ✅ Your password has been updated successfully.

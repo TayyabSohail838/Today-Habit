@@ -70,6 +70,49 @@ export async function requestPasswordReset(email) {
 }
 
 /**
+ * Recover the Supabase auth session from the password-reset link
+ * returned by the email redirect. This is required for the recovery
+ * flow to continue after the user clicks the Gmail link.
+ */
+export async function recoverPasswordSession() {
+  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+  const hashParams = new URLSearchParams(hash);
+  const queryParams = new URLSearchParams(window.location.search);
+
+  const accessToken = hashParams.get("access_token") ?? queryParams.get("access_token");
+  const refreshToken = hashParams.get("refresh_token") ?? queryParams.get("refresh_token");
+  const code = hashParams.get("code") ?? queryParams.get("code");
+  const tokenHash = hashParams.get("token_hash") ?? queryParams.get("token_hash");
+  const type = hashParams.get("type") ?? queryParams.get("type");
+
+  if (accessToken && refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
+  if (tokenHash && type === "recovery") {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "recovery",
+    });
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Update the user's password after the reset-link flow lands them back.
  */
 export async function updatePassword(newPassword) {
