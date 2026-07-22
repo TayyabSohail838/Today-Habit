@@ -51,8 +51,7 @@ export function Login() {
             {loading ? "Logging in…" : "Log in"}
           </Button>
         </form>
-        <div className="flex justify-between text-sm text-muted-foreground mt-4">
-          <Link to="/forgot-password" className="hover:text-foreground">Forgot password?</Link>
+        <div className="flex justify-end text-sm text-muted-foreground mt-4">
           <Link to="/register" className="hover:text-foreground">Create account</Link>
         </div>
       </Card>
