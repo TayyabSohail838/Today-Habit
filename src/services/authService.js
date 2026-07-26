@@ -1,151 +1,64 @@
-// Authentication service — all calls delegate to Supabase Auth.
-// Callers (AuthContext) use the same function names as before so
-// context/page code stays stable.
+import { readKey, writeKey } from "../lib/storage";
+
+// Placeholder auth so routing/pages/protected routes can be built now.
+// Swap these three functions for supabase.auth.* calls later — callers
+// (AuthContext) don't need to change shape.
+
+const SESSION_KEY = "habit-tracker:session";
+const USERS_KEY = "habit-tracker:users";
+
+export function getSession() {
+  return readKey(SESSION_KEY, null);
+}
+
+export function register({ name, email, password }) {
+  const users = readKey(USERS_KEY, []);
+  if (users.some((u) => u.email === email)) {
+    throw new Error("An account with this email already exists.");
+  }
+  const user = { id: crypto.randomUUID(), name, email, password };
+  writeKey(USERS_KEY, [...users, user]);
+  const session = { id: user.id, name: user.name, email: user.email };
+  writeKey(SESSION_KEY, session);
+  return session;
+}
+
+export function login({ email, password }) {
+  const users = readKey(USERS_KEY, []);
+  const user = users.find((u) => u.email === email && u.password === password);
+  if (!user) throw new Error("Invalid email or password.");
+  const session = { id: user.id, name: user.name, email: user.email };
+  writeKey(SESSION_KEY, session);
+  return session;
+}
 
 import { supabase } from "../lib/supabase";
 
-// ----------------------------------------------------------------
-// Session
-// ----------------------------------------------------------------
+export async function loginWithGoogle() {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://tycmykwfbzngdhrcfpsf.supabase.co";
+  const directOAuthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + "/dashboard")}`;
 
-/** Returns the current session object (or null if not logged in). */
-export async function getSession() {
-  const { data } = await supabase.auth.getSession();
-  return data.session ?? null;
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+
+    if (!error && data?.url) {
+      window.location.href = data.url;
+      return data;
+    }
+  } catch (err) {
+    console.warn("Using direct OAuth URL fallback:", err);
+  }
+
+  // Guaranteed direct browser redirect
+  window.location.href = directOAuthUrl;
 }
 
-// ----------------------------------------------------------------
-// Auth actions
-// ----------------------------------------------------------------
-
-/**
- * Create a new account.
- * Supabase sends a confirmation email by default — the user must
- * click the link before they can sign in.  You can disable this
- * in Dashboard → Authentication → Providers → Email.
- */
-export async function register({ name, email, password }) {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: name }, // stored in auth.users raw_user_meta_data
-    },
-  });
-  if (error) throw new Error(error.message);
-  return data.user;
-}
-
-/**
- * Sign in with email + password.
- * Returns the Supabase User object on success.
- */
-export async function login({ email, password }) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (error) throw new Error(error.message);
-  return data.user;
-}
-
-/**
- * Sign out the current user and clear the local session.
- */
-export async function logout() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw new Error(error.message);
-}
-
-/**
- * Send a password-reset email.
- * The link in the email redirects to /reset-password (Supabase handles it).
- */
-export async function requestPasswordReset(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
-  if (error) throw new Error(error.message);
+export function requestPasswordReset(email) {
+  // Stub: in a real backend this triggers a Supabase email.
   return { email, sent: true };
-}
-
-/**
- * Recover the Supabase auth session from the password-reset link
- * returned by the email redirect. This is required for the recovery
- * flow to continue after the user clicks the Gmail link.
- */
-export async function recoverPasswordSession() {
-  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
-  const hashParams = new URLSearchParams(hash);
-  const queryParams = new URLSearchParams(window.location.search);
-
-  const accessToken = hashParams.get("access_token") ?? queryParams.get("access_token");
-  const refreshToken = hashParams.get("refresh_token") ?? queryParams.get("refresh_token");
-  const code = hashParams.get("code") ?? queryParams.get("code");
-  const tokenHash = hashParams.get("token_hash") ?? queryParams.get("token_hash");
-  const type = hashParams.get("type") ?? queryParams.get("type");
-
-  if (accessToken && refreshToken) {
-    const { error } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-    if (error) throw new Error(error.message);
-    return true;
-  }
-
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) throw new Error(error.message);
-    return true;
-  }
-
-  if (tokenHash && type === "recovery") {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: "recovery",
-    });
-    if (error) throw new Error(error.message);
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Update the user's password after the reset-link flow lands them back.
- */
-export async function updatePassword(newPassword) {
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw new Error(error.message);
-  return true;
-}
-
-// ----------------------------------------------------------------
-// Profile helpers
-// ----------------------------------------------------------------
-
-/**
- * Fetch the profile row for a given user id.
- * Returns { full_name, global_background } or null.
- */
-export async function getProfile(userId) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("full_name, global_background")
-    .eq("id", userId)
-    .single();
-  if (error) return null;
-  return data;
-}
-
-/**
- * Patch the profile row for the current user.
- */
-export async function updateProfile(userId, patch) {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("id", userId);
-  if (error) throw new Error(error.message);
 }

@@ -1,184 +1,71 @@
-// Habits + logs data layer — all reads/writes go through Supabase.
-// The public API (function names, return shapes) is kept identical
-// to the old localStorage version so HabitsContext needs minimal changes.
-//
-// Logs shape returned by getLogs():
-//   { [habitId]: { [dateISO]: true } }
-// This matches what Dashboard/Statistics/AIInsights expect.
+import { readKey, writeKey } from "../lib/storage";
 
-import { supabase } from "../lib/supabase";
+const HABITS_KEY = "habit-tracker:habits";
+const LOGS_KEY = "habit-tracker:logs"; // { [habitId]: { [dateISO]: true } }
 
-// ----------------------------------------------------------------
-// Habits
-// ----------------------------------------------------------------
+// Every function here is the seam where a future Supabase-backed
+// implementation (profiles / habits / habit_logs tables + RLS) would
+// slot in. Callers (hooks, pages) should not need to change.
 
-/**
- * Fetch all habits for the given user (active + archived).
- * Returned array matches the shape expected by HabitsContext.
- */
-export async function getHabits(userId) {
-  const { data, error } = await supabase
-    .from("habits")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true });
-
-  if (error) throw new Error(error.message);
-
-  // Map snake_case DB columns → camelCase app shape
-  return (data ?? []).map(dbHabitToApp);
+export function getHabits() {
+  return readKey(HABITS_KEY, []);
 }
 
-/**
- * Create a new habit row and return it.
- */
-export async function createHabit(userId, habit) {
-  const { data, error } = await supabase
-    .from("habits")
-    .insert({
-      user_id:       userId,
-      name:          habit.name,
-      description:   habit.description ?? "",
-      category:      habit.category ?? "General",
-      color:         habit.color ?? "#4C6FFF",
-      icon:          habit.icon ?? "Sparkles",
-      priority:      habit.priority ?? "medium",
-      reminder_time: habit.reminderTime ?? null,
-      frequency:     habit.frequency ?? "daily",
-      background:    habit.background ?? "stadium",
-      archived:      false,
-    })
-    .select()
-    .single();
-
-  if (error) throw new Error(error.message);
-  return dbHabitToApp(data);
+export function saveHabits(habits) {
+  writeKey(HABITS_KEY, habits);
 }
 
-/**
- * Apply a partial update to a habit row.
- * `patch` uses camelCase app keys — converted to snake_case here.
- */
-export async function updateHabit(id, patch) {
-  const { error } = await supabase
-    .from("habits")
-    .update(appPatchToDb(patch))
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
+export function createHabit(habit) {
+  const habits = getHabits();
+  const newHabit = {
+    id: crypto.randomUUID(),
+    name: habit.name,
+    description: habit.description ?? "",
+    category: habit.category ?? "General",
+    color: habit.color ?? "#4C6FFF",
+    icon: habit.icon ?? "Sparkles",
+    priority: habit.priority ?? "medium",
+    reminderTime: habit.reminderTime ?? null,
+    frequency: habit.frequency ?? "daily", // daily | weekly | monthly | custom
+    background: habit.background ?? "stadium",
+    archived: false,
+    createdAt: new Date().toISOString(),
+  };
+  saveHabits([...habits, newHabit]);
+  return newHabit;
 }
 
-/**
- * Hard-delete a habit (habit_logs cascade automatically).
- */
-export async function deleteHabit(id) {
-  const { error } = await supabase
-    .from("habits")
-    .delete()
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
+export function updateHabit(id, patch) {
+  const habits = getHabits().map((h) => (h.id === id ? { ...h, ...patch } : h));
+  saveHabits(habits);
 }
 
-/**
- * Archive or restore a habit.
- */
-export async function archiveHabit(id, archived = true) {
-  return updateHabit(id, { archived });
+export function deleteHabit(id) {
+  saveHabits(getHabits().filter((h) => h.id !== id));
 }
 
-// ----------------------------------------------------------------
-// Logs
-// ----------------------------------------------------------------
-
-/**
- * Fetch all logs for the given user and reshape into:
- *   { [habitId]: { [dateISO]: true } }
- */
-export async function getLogs(userId) {
-  const { data, error } = await supabase
-    .from("habit_logs")
-    .select("habit_id, date")
-    .eq("user_id", userId);
-
-  if (error) throw new Error(error.message);
-
-  // Reshape rows → nested map
-  const logs = {};
-  for (const row of data ?? []) {
-    if (!logs[row.habit_id]) logs[row.habit_id] = {};
-    logs[row.habit_id][row.date] = true;
-  }
-  return logs;
+export function archiveHabit(id, archived = true) {
+  updateHabit(id, { archived });
 }
 
-/**
- * Toggle a log entry: insert if missing, delete if present.
- * Returns the updated logs map for the given user.
- */
-export async function toggleCompletion(habitId, userId, dateISO) {
-  // Check if the log exists
-  const { data: existing } = await supabase
-    .from("habit_logs")
-    .select("id")
-    .eq("habit_id", habitId)
-    .eq("date", dateISO)
-    .maybeSingle();
+export function getLogs() {
+  return readKey(LOGS_KEY, {});
+}
 
-  if (existing) {
-    // Already logged — delete it (toggle off)
-    const { error } = await supabase
-      .from("habit_logs")
-      .delete()
-      .eq("id", existing.id);
-    if (error) throw new Error(error.message);
+export function toggleCompletion(habitId, dateISO = new Date().toISOString().slice(0, 10)) {
+  const logs = getLogs();
+  const habitLogs = { ...(logs[habitId] ?? {}) };
+  if (habitLogs[dateISO]) {
+    delete habitLogs[dateISO];
   } else {
-    // Not logged — insert it (toggle on)
-    const { error } = await supabase
-      .from("habit_logs")
-      .insert({ habit_id: habitId, user_id: userId, date: dateISO });
-    if (error) throw new Error(error.message);
+    habitLogs[dateISO] = true;
   }
+  const next = { ...logs, [habitId]: habitLogs };
+  writeKey(LOGS_KEY, next);
+  return next;
 }
 
-// ----------------------------------------------------------------
-// Shape converters
-// ----------------------------------------------------------------
-
-function dbHabitToApp(row) {
-  return {
-    id:           row.id,
-    userId:       row.user_id,
-    name:         row.name,
-    description:  row.description,
-    category:     row.category,
-    color:        row.color,
-    icon:         row.icon,
-    priority:     row.priority,
-    reminderTime: row.reminder_time,
-    frequency:    row.frequency,
-    background:   row.background,
-    archived:     row.archived,
-    createdAt:    row.created_at,
-  };
-}
-
-function appPatchToDb(patch) {
-  const map = {
-    name:         "name",
-    description:  "description",
-    category:     "category",
-    color:        "color",
-    icon:         "icon",
-    priority:     "priority",
-    reminderTime: "reminder_time",
-    frequency:    "frequency",
-    background:   "background",
-    archived:     "archived",
-  };
-  const db = {};
-  for (const [appKey, dbKey] of Object.entries(map)) {
-    if (appKey in patch) db[dbKey] = patch[appKey];
-  }
-  return db;
+export function isCompleted(habitId, dateISO = new Date().toISOString().slice(0, 10)) {
+  const logs = getLogs();
+  return Boolean(logs[habitId]?.[dateISO]);
 }

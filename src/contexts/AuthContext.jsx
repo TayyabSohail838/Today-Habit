@@ -5,74 +5,72 @@ import * as authService from "../services/authService";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // `user` shape: { id, email, name } — derived from Supabase session + profile
-  const [user, setUser]       = useState(null);
-  // `loading` is true while we're resolving the initial session on mount.
-  // ProtectedRoute waits for this before deciding to redirect.
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ----------------------------------------------------------------
-  // Build a normalised user object from a Supabase session + profile
-  // ----------------------------------------------------------------
-  async function buildUser(supabaseUser) {
-    if (!supabaseUser) return null;
-    const profile = await authService.getProfile(supabaseUser.id);
-    return {
-      id:    supabaseUser.id,
-      email: supabaseUser.email,
-      name:  profile?.full_name ?? supabaseUser.user_metadata?.full_name ?? "",
-      globalBackground: profile?.global_background ?? "stadium",
-    };
-  }
-
-  // ----------------------------------------------------------------
-  // Subscribe to auth state changes (handles refresh, tab refocus, etc.)
-  // ----------------------------------------------------------------
   useEffect(() => {
-    // 1. Resolve any existing session on first load
-    supabase.auth.getSession().then(async ({ data }) => {
-      setUser(await buildUser(data.session?.user ?? null));
+    // 1. Get the current session on mount (handles the OAuth hash redirect)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || session.user.email,
+        });
+      } else {
+        // Fallback: check local storage-based session (email/password users)
+        setUser(authService.getSession());
+      }
       setLoading(false);
     });
 
-    // 2. Listen for future sign-in / sign-out / token refresh events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setUser(await buildUser(session?.user ?? null));
-        setLoading(false);
+    // 2. Listen for auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || session.user.email,
+        });
+      } else {
+        // No Supabase session — check local session
+        setUser(authService.getSession());
       }
-    );
+    });
 
-    return () => subscription.unsubscribe();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => subscription?.unsubscribe();
+  }, []);
 
-  // ----------------------------------------------------------------
-  // Auth actions
-  // ----------------------------------------------------------------
-  const login = async (credentials) => {
-    const supabaseUser = await authService.login(credentials);
-    // onAuthStateChange fires automatically and updates `user`
-    return supabaseUser;
+  const login = (credentials) => {
+    const session = authService.login(credentials);
+    setUser(session);
+    return session;
   };
 
-  const register = async (details) => {
-    const supabaseUser = await authService.register(details);
-    return supabaseUser;
+  const register = (details) => {
+    const session = authService.register(details);
+    setUser(session);
+    return session;
   };
 
   const logout = async () => {
-    await authService.logout();
-    // onAuthStateChange fires automatically and sets user → null
+    await supabase.auth.signOut();
+    authService.logout();
+    setUser(null);
   };
 
-  const updateGlobalBackground = async (bgId) => {
-    if (!user) return;
-    setUser((prev) => ({ ...prev, globalBackground: bgId }));
-    await authService.updateProfile(user.id, { global_background: bgId });
-  };
+  const loginWithGoogle = () => authService.loginWithGoogle();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateGlobalBackground }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loginWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );

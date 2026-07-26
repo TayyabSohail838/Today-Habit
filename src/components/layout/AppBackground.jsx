@@ -1,24 +1,41 @@
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useHabits } from "../../contexts/HabitsContext";
 import { getBackground } from "../../lib/backgrounds";
+import { readKey } from "../../lib/storage";
 
-// Sitewide ambient background: shows a large, blurred, low-opacity photo
-// behind every page so the app never feels like a flat white dashboard.
-//
-// Route-aware logic:
-//   /habits/:id  → that habit's chosen background
-//   other pages  → the user's global background preference (default: stadium)
-//   "none"       → no background image at all
+const PAGE_BG_KEY = "habit-tracker:page-background";
+
+// Sitewide ambient background: a large, blurred, low-opacity photo behind
+// every page. Priority order:
+//   1. /habits/:id  → that habit's chosen background
+//   2. /habits list → first active habit's background (if any)
+//   3. Anywhere else → user's chosen page background (from Settings)
+//   4. Default: stadium
 export function AppBackground() {
   const location = useLocation();
-  const { habits, globalBackground } = useHabits();
+  const { habits } = useHabits();
+  const [pageBg, setPageBg] = useState(() => readKey(PAGE_BG_KEY, "stadium"));
 
-  // Check if we're on a habit detail page
-  const match = location.pathname.match(/\/habits\/([^/]+)/);
-  const habit = match ? habits.find((h) => h.id === match[1]) : null;
+  // Re-read from storage when Settings saves a new choice
+  useEffect(() => {
+    const onStorage = () => setPageBg(readKey(PAGE_BG_KEY, "stadium"));
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
-  // Determine which background to use
-  const bgId = habit?.background ?? globalBackground ?? "stadium";
+  // Priority 1: habit detail page
+  const detailMatch = location.pathname.match(/\/habits\/([^/]+)/);
+  const detailHabit = detailMatch ? habits.find((h) => h.id === detailMatch[1]) : null;
+
+  // Priority 2: habits list page — show first active habit's bg
+  const isHabitsListPage = location.pathname === "/habits";
+  const firstActiveHabit = isHabitsListPage
+    ? habits.find((h) => !h.archived && h.background && h.background !== "none")
+    : null;
+
+  const activeHabit = detailHabit ?? firstActiveHabit ?? null;
+  const bgId = activeHabit?.background ?? pageBg ?? "stadium";
   const bg = getBackground(bgId);
 
   if (!bg.url) return null;
@@ -34,4 +51,3 @@ export function AppBackground() {
     </div>
   );
 }
-

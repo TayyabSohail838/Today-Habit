@@ -113,3 +113,18 @@ html, body, #root {
 .animate-float-slower {
   animation: float-slower 13s ease-in-out infinite;
 }
+
+/* Fix time input – clock icon and text color in dark mode */
+input[type="time"] {
+  color-scheme: dark;
+  color: var(--color-foreground);
+}
+.dark input[type="time"] {
+  color-scheme: dark;
+  color: #ffffff;
+}
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(2);
+  cursor: pointer;
+  opacity: 0.8;
+}

@@ -1,84 +1,45 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useAuth } from "./AuthContext";
+import { createContext, useContext, useState, useCallback } from "react";
 import * as habitsService from "../services/habitsService";
 
 const HabitsContext = createContext(null);
 
 export function HabitsProvider({ children }) {
-  const { user, updateGlobalBackground } = useAuth();
-
-  const [habits, setHabits]   = useState([]);
-  const [logs, setLogs]       = useState({});
+  const [habits, setHabits] = useState(() => habitsService.getHabits());
+  const [logs, setLogs] = useState(() => habitsService.getLogs());
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  // Global background is now stored in the profiles table via AuthContext.
-  // We read it from user.globalBackground and write via authService.updateProfile.
-  const globalBackground = user?.globalBackground ?? "stadium";
-
-  // ----------------------------------------------------------------
-  // Data loading — refetch whenever the logged-in user changes
-  // ----------------------------------------------------------------
-  const refresh = useCallback(async () => {
-    if (!user?.id) {
-      setHabits([]);
-      setLogs({});
-      return;
-    }
-    const [fetchedHabits, fetchedLogs] = await Promise.all([
-      habitsService.getHabits(user.id),
-      habitsService.getLogs(user.id),
-    ]);
-    setHabits(fetchedHabits);
-    setLogs(fetchedLogs);
-  }, [user?.id]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  // ----------------------------------------------------------------
-  // Habit CRUD
-  // ----------------------------------------------------------------
-  const addHabit = async (habit) => {
-    await habitsService.createHabit(user.id, habit);
-    await refresh();
-  };
-
-  const editHabit = async (id, patch) => {
-    await habitsService.updateHabit(id, patch);
-    await refresh();
-  };
-
-  const removeHabit = async (id) => {
-    await habitsService.deleteHabit(id);
-    await refresh();
-  };
-
-  const toggleArchive = async (id, archived) => {
-    await habitsService.archiveHabit(id, archived);
-    await refresh();
-  };
-
-  // ----------------------------------------------------------------
-  // Log toggle
-  // ----------------------------------------------------------------
-  const toggleCompletion = async (id, dateISO) => {
-    await habitsService.toggleCompletion(id, user.id, dateISO);
-    await refresh();
-  };
-
-  // ----------------------------------------------------------------
-  // Global background preference (stored in profiles table via AuthContext)
-  // ----------------------------------------------------------------
-  const setGlobalBackground = async (bgId) => {
-    await updateGlobalBackground(bgId);
-  };
-
-  // ----------------------------------------------------------------
-  // Modal state
-  // ----------------------------------------------------------------
-  const openAddHabit  = () => setIsAddOpen(true);
+  const openAddHabit = () => setIsAddOpen(true);
   const closeAddHabit = () => setIsAddOpen(false);
+
+  const refresh = useCallback(() => {
+    setHabits(habitsService.getHabits());
+    setLogs(habitsService.getLogs());
+  }, []);
+
+  const addHabit = (habit) => {
+    habitsService.createHabit(habit);
+    refresh();
+  };
+
+  const editHabit = (id, patch) => {
+    habitsService.updateHabit(id, patch);
+    refresh();
+  };
+
+  const removeHabit = (id) => {
+    habitsService.deleteHabit(id);
+    refresh();
+  };
+
+  const toggleArchive = (id, archived) => {
+    habitsService.archiveHabit(id, archived);
+    refresh();
+  };
+
+  const toggleCompletion = (id, dateISO) => {
+    habitsService.toggleCompletion(id, dateISO);
+    refresh();
+  };
 
   return (
     <HabitsContext.Provider
@@ -94,8 +55,6 @@ export function HabitsProvider({ children }) {
         isAddOpen,
         openAddHabit,
         closeAddHabit,
-        globalBackground,
-        setGlobalBackground,
       }}
     >
       {children}

@@ -10,13 +10,13 @@
 export const BACKGROUNDS = [
   {
     id: "stadium",
-    label: "Football Close-up (Stadium blurred)",
+    label: "Sports",
     category: "Fitness",
     url: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1600&q=75",
   },
   {
     id: "gym",
-    label: "Dumbbells / Weight Plates",
+    label: "Gym / Exercise",
     category: "Fitness",
     url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1600&q=75",
   },
@@ -28,9 +28,9 @@ export const BACKGROUNDS = [
   },
   {
     id: "gaming",
-    label: "Controller Close-up",
+    label: "Gaming",
     category: "Gaming",
-    url: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=1600&q=75",
+    url: "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=1600&q=75",
   },
   {
     id: "reading",
@@ -55,6 +55,12 @@ export const BACKGROUNDS = [
     label: "Sleep / Rest",
     category: "Health",
     url: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&w=1600&q=75",
+  },
+  {
+    id: "prayer",
+    label: "Prayer",
+    category: "Spiritual",
+    url: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1600&q=75",
   },
   {
     id: "none",

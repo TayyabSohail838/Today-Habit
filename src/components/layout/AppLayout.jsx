@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { AddHabitModal } from "../features/habits/AddHabitModal";
+import { AssistantWidget } from "../features/assistant/AssistantWidget";
 
 export function AppLayout() {
   return (
@@ -12,6 +13,8 @@ export function AppLayout() {
       </div>
       <FloatingActionButton />
       <AddHabitModal />
+      {/* AI habit coach — floats above FAB, on all protected pages */}
+      <AssistantWidget bottomClass="bottom-24 right-5" />
     </div>
   );
 }

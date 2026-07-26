@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { ChevronDown, Star } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { ThemeToggle } from "../components/ui/ThemeToggle";
 import { ParallaxHero } from "../components/features/landing/ParallaxHero";
+import { AssistantWidget } from "../components/features/assistant/AssistantWidget";
 
 const testimonials = [
   {
@@ -26,11 +28,11 @@ const testimonials = [
 const faqs = [
   {
     q: "Is my data stored anywhere else?",
-    a: "Right now everything is stored locally in your browser — nothing is sent to a server. That means it's private, but it also means clearing your browser data will clear your habits.",
+    a: "Your habits and logs are stored securely in Supabase (a hosted Postgres database). They sync across all your devices and are tied to your account — not just one browser.",
   },
   {
     q: "Do the AI insights use a real AI model?",
-    a: "Today insights are generated from simple, transparent rules (streaks, completion rate, weekday vs weekend patterns). The service layer is built so a real LLM can be swapped in later without changing the UI.",
+    a: "Yes — the chat assistant is powered by Google Gemini and has access to your real streak data, completion rates, and today's progress. Ask it anything about your habits.",
   },
   {
     q: "Can I track more than one habit at a time?",
@@ -47,7 +49,7 @@ function FaqItem({ item, isOpen, onToggle }) {
     <div className="border-b border-border py-4">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between text-left gap-4"
+        className="w-full flex items-center justify-between text-left gap-4 cursor-pointer"
       >
         <span className="font-medium text-foreground">{item.q}</span>
         <ChevronDown
@@ -66,7 +68,26 @@ export function Landing() {
     <div className="min-h-screen bg-transparent text-foreground">
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-8 py-6 max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
-          <img src="/favicon.svg" alt="Habit Tracker logo" className="h-9 w-9 rounded-md shadow-sm" />
+          {/* Inline SVG logo — works regardless of vite base path */}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" className="h-9 w-9 rounded-xl shadow-lg" aria-label="Habit Tracker logo">
+            <defs>
+              <linearGradient id="logoBg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="#059669" />
+              </linearGradient>
+              <linearGradient id="logoAccent" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#f9fafb" />
+                <stop offset="100%" stopColor="#d1fae5" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#logoBg)" />
+            <rect x="13" y="14" width="38" height="36" rx="8" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" />
+            <path d="M22 22h20" stroke="rgba(255,255,255,0.8)" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M22 30h16" stroke="rgba(255,255,255,0.65)" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M22 38h12" stroke="rgba(255,255,255,0.65)" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="44" cy="38" r="9" fill="url(#logoAccent)" opacity="0.95" />
+            <path d="M40 38l3 3 6-7" fill="none" stroke="#059669" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           <span className="font-semibold text-lg text-white">Habit Tracker</span>
         </div>
         <div className="flex items-center gap-3">
@@ -76,26 +97,23 @@ export function Landing() {
         </div>
       </header>
 
+      {/* Merged Parallax Hero with integrated 3 Feature Cards & smooth multi-stop dissolve gradient */}
       <ParallaxHero />
 
-      <section id="features" className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6 px-6 pb-24">
-        {["Daily Tracking", "Smart Analytics", "AI Recommendations"].map((f) => (
-          <div key={f} className="bg-card/85 backdrop-blur-sm border border-border rounded-xl shadow-sm p-6">
-            <h3 className="font-semibold">{f}</h3>
-            <p className="text-muted-foreground text-sm mt-2">Coming to life as you build out this section.</p>
-          </div>
-        ))}
-      </section>
-
-      <section id="testimonials" className="border-t border-border bg-muted/20 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 py-20">
+      {/* Testimonials Section */}
+      <section id="testimonials" className="bg-transparent py-16">
+        <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-semibold tracking-tight">What people are saying</h2>
             <p className="text-muted-foreground mt-3">A few early users on how it's worked for them.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
-              <div key={t.name} className="bg-card/85 backdrop-blur-sm border border-border rounded-xl shadow-sm p-6 flex flex-col">
+              <motion.div
+                key={t.name}
+                whileHover={{ scale: 1.04, y: -5 }}
+                className="bg-card/85 backdrop-blur-sm border border-border rounded-2xl shadow-sm hover:shadow-xl p-6 flex flex-col transition-all duration-300 cursor-pointer"
+              >
                 <div className="flex gap-0.5 mb-3">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-warning text-warning" />
@@ -106,13 +124,14 @@ export function Landing() {
                   <p className="text-sm font-medium">{t.name}</p>
                   <p className="text-xs text-muted-foreground">{t.role}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="faq" className="max-w-3xl mx-auto px-6 py-20">
+      {/* FAQ Section */}
+      <section id="faq" className="max-w-3xl mx-auto px-6 py-16">
         <h2 className="text-3xl font-semibold tracking-tight text-center mb-10">
           Frequently asked questions
         </h2>
@@ -128,8 +147,12 @@ export function Landing() {
         </div>
       </section>
 
+      {/* CTA Box */}
       <section className="max-w-5xl mx-auto px-6 pb-20">
-        <div className="rounded-2xl border border-border bg-card/85 backdrop-blur-sm p-10 text-center">
+        <motion.div
+          whileHover={{ scale: 1.02, y: -3 }}
+          className="rounded-2xl border border-border bg-card/85 backdrop-blur-sm p-10 text-center shadow-lg hover:shadow-2xl transition-all duration-300"
+        >
           <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
             Ready to build better habits?
           </h2>
@@ -139,12 +162,15 @@ export function Landing() {
           <Link to="/register">
             <Button className="mt-6 px-6 py-3 text-base">Start free</Button>
           </Link>
-        </div>
+        </motion.div>
       </section>
 
       <footer className="text-center text-muted-foreground text-sm py-8 border-t border-border">
         © {new Date().getFullYear()} Habit Tracker
       </footer>
+
+      {/* Floating AI Chat Assistant Widget on Landing Page */}
+      <AssistantWidget bottomClass="bottom-6 right-6" />
     </div>
   );
 }
