@@ -58,6 +58,10 @@ export async function loginWithGoogle() {
   window.location.href = directOAuthUrl;
 }
 
+export function logout() {
+  writeKey(SESSION_KEY, null);
+}
+
 export function requestPasswordReset(email) {
   // Stub: in a real backend this triggers a Supabase email.
   return { email, sent: true };
