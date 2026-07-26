@@ -35,27 +35,24 @@ export function login({ email, password }) {
 import { supabase } from "../lib/supabase";
 
 export async function loginWithGoogle() {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://tycmykwfbzngdhrcfpsf.supabase.co";
-  const directOAuthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + "/dashboard")}`;
+  const currentOrigin = window.location.origin;
+  const redirectTarget = `${currentOrigin}/dashboard`;
 
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: redirectTarget,
+    },
+  });
 
-    if (!error && data?.url) {
-      window.location.href = data.url;
-      return data;
-    }
-  } catch (err) {
-    console.warn("Using direct OAuth URL fallback:", err);
+  if (error) {
+    console.error("Google sign-in error:", error);
+    throw error;
   }
 
-  // Guaranteed direct browser redirect
-  window.location.href = directOAuthUrl;
+  if (data?.url) {
+    window.location.href = data.url;
+  }
 }
 
 export function logout() {
