@@ -108,11 +108,19 @@ export function Landing() {
             <p className="text-muted-foreground mt-3">A few early users on how it's worked for them.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
+            {testimonials.map((t, index) => (
               <motion.div
                 key={t.name}
-                whileHover={{ scale: 1.04, y: -5 }}
-                className="bg-card/85 backdrop-blur-sm border border-border rounded-2xl shadow-sm hover:shadow-xl p-6 flex flex-col transition-all duration-300 cursor-pointer"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ duration: 0.35, delay: index * 0.05, ease: "easeOut" }}
+                whileHover={{
+                  scale: 1.03,
+                  y: -5,
+                  transition: { duration: 0.15, ease: "easeOut" },
+                }}
+                className="bg-card/85 backdrop-blur-sm border border-border rounded-2xl shadow-sm hover:shadow-xl p-6 flex flex-col cursor-pointer"
               >
                 <div className="flex gap-0.5 mb-3">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -131,7 +139,14 @@ export function Landing() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="max-w-3xl mx-auto px-6 py-16">
+      <motion.section
+        id="faq"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.15 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="max-w-3xl mx-auto px-6 py-16"
+      >
         <h2 className="text-3xl font-semibold tracking-tight text-center mb-10">
           Frequently asked questions
         </h2>
@@ -145,13 +160,21 @@ export function Landing() {
             />
           ))}
         </div>
-      </section>
+      </motion.section>
 
       {/* CTA Box */}
       <section className="max-w-5xl mx-auto px-6 pb-20">
         <motion.div
-          whileHover={{ scale: 1.02, y: -3 }}
-          className="rounded-2xl border border-border bg-card/85 backdrop-blur-sm p-10 text-center shadow-lg hover:shadow-2xl transition-all duration-300"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          whileHover={{
+            scale: 1.02,
+            y: -3,
+            transition: { duration: 0.15, ease: "easeOut" },
+          }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="rounded-2xl border border-border bg-card/85 backdrop-blur-sm p-10 text-center shadow-lg hover:shadow-2xl"
         >
           <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">
             Ready to build better habits?

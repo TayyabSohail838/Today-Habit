@@ -134,13 +134,13 @@ export function ParallaxHero() {
             key={f.title}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ opacity: { duration: 0.4, delay: 0.2 + i * 0.08 }, y: { duration: 0.4, delay: 0.2 + i * 0.08 } }}
+            transition={{ default: { duration: 0.35, delay: i * 0.05, ease: "easeOut" } }}
             whileHover={{
               scale: 1.05,
               y: -8,
               transition: { duration: 0.15, ease: "easeOut" },
             }}
-            className="group bg-card/80 dark:bg-neutral-900/80 backdrop-blur-md border border-border dark:border-white/15 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:border-emerald-500/50 transition-colors duration-150 cursor-pointer"
+            className="group bg-card/80 dark:bg-neutral-900/80 backdrop-blur-md border border-border dark:border-white/15 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:border-emerald-500/50 cursor-pointer"
           >
             <h3 className="font-bold text-lg text-foreground dark:text-white group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors duration-150">
               {f.title}

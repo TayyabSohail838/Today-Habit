@@ -21,8 +21,11 @@ function HabitCard({ h, onArchive, onDelete }) {
 
   return (
     <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.1 }}
       whileHover={{ scale: 1.02, y: -4 }}
-      transition={{ duration: 0.15, ease: "easeOut" }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
       className={`relative rounded-2xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-shadow ${
         h.archived ? "opacity-60" : ""
       }`}
