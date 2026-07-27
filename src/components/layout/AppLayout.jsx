@@ -14,7 +14,7 @@ export function AppLayout() {
       <FloatingActionButton />
       <AddHabitModal />
       {/* AI habit coach — floats above FAB, on all protected pages */}
-      <AssistantWidget bottomClass="bottom-24 right-5" />
+      <AssistantWidget bottomClass="bottom-24 right-8" />
     </div>
   );
 }

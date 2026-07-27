@@ -108,9 +108,9 @@ export function AssistantWidget({ bottomClass = "bottom-6 right-6" }) {
       {/* Floating button */}
       <button
         id="assistant-widget-toggle"
-        aria-label="Open habit coach"
+        aria-label={open ? "Close habit coach" : "Open habit coach"}
         onClick={() => setOpen((v) => !v)}
-        className={`fixed ${bottomClass} z-50 w-13 h-13 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 cursor-pointer ${
+        className={`fixed ${bottomClass} z-50 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 cursor-pointer ${
           open
             ? "bg-destructive text-destructive-foreground rotate-90"
             : "bg-primary text-primary-foreground hover:scale-110 shadow-emerald-500/20"
@@ -121,16 +121,28 @@ export function AssistantWidget({ bottomClass = "bottom-6 right-6" }) {
 
       {/* Chat panel */}
       <div
-        className={`fixed bottom-20 right-6 z-50 w-80 sm:w-96 transition-all duration-300 origin-bottom-right ${
+        className={`fixed bottom-38 right-6 z-50 w-80 sm:w-96 transition-all duration-300 origin-bottom-right ${
           open ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
         }`}
       >
         <div className="bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[28rem]">
           {/* Header */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 border-b border-border shrink-0">
-            <Bot className="w-4 h-4 text-primary" />
-            <span className="font-semibold text-sm text-foreground">Habit Coach</span>
-            <span className="ml-auto text-xs text-muted-foreground">Powered by Gemini</span>
+          <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-b border-border shrink-0">
+            <div className="flex items-center gap-2">
+              <Bot className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-sm text-foreground">Habit Coach</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground hidden sm:inline">Powered by Gemini</span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
+                aria-label="Close Habit Coach"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
